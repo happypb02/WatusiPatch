@@ -615,9 +615,7 @@ static CLLocationManager *g_locationManager = nil;
 
     // 添加重试逻辑
     __block int retryCount = 0;
-    __block void (^retrySend)(void);
-
-    __weak __typeof(retrySend) weakRetrySend = retrySend;
+    __block void (^retrySend)(void) = nil;
 
     retrySend = ^{
         @try {
@@ -627,10 +625,10 @@ static CLLocationManager *g_locationManager = nil;
             retryCount++;
             if (retryCount < 3) {
                 WATUSI_PATCH_LOG("消息发送失败，重试 %d/3", retryCount);
-                __strong __typeof(weakRetrySend) strongRetrySend = weakRetrySend;
-                if (strongRetrySend) {
+                void (^blockCopy)(void) = retrySend;
+                if (blockCopy) {
                     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (retryCount * 2) * NSEC_PER_SEC),
-                                 dispatch_get_main_queue(), strongRetrySend);
+                                 dispatch_get_main_queue(), blockCopy);
                 }
             } else {
                 WATUSI_PATCH_LOG("消息发送失败，已达最大重试次数");
