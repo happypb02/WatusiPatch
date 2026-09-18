@@ -66,12 +66,11 @@ jobs:
         # 验证工具链
         ls -la $THEOS/toolchain/linux/iphone/bin/
 
-        # 下载 iOS SDK
+        # 下载兼容的 iOS 14.5 SDK（与 clang 10 兼容）
         cd $THEOS
-        wget -q https://github.com/theos/sdks/archive/master.zip -O sdks.zip
-        unzip -q sdks.zip
-        mv sdks-master/iPhoneOS*.sdk sdks/
-        rm -rf sdks-master sdks.zip
+        curl -LO https://github.com/theos/sdks/releases/download/master/iPhoneOS14.5.sdk.tar.xz
+        tar -xf iPhoneOS14.5.sdk.tar.xz -C sdks/
+        rm iPhoneOS14.5.sdk.tar.xz
 
         # 验证 SDK
         ls -la $THEOS/sdks/
