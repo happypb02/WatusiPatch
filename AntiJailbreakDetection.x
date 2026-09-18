@@ -319,7 +319,8 @@ int hooked_system(const char *command) {
 %hook NSBundle
 
 - (NSDictionary *)infoDictionary {
-    NSMutableDictionary *info = [[%orig mutableCopy] autorelease];
+    NSDictionary *originalInfo = %orig;
+    NSMutableDictionary *info = [originalInfo mutableCopy];
 
     if (info) {
         // 移除任何越狱相关的标记

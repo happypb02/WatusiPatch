@@ -20,7 +20,6 @@
 
 static BOOL g_networkPersistenceEnabled = YES;
 static BOOL g_backgroundKeepAliveEnabled = YES;
-static UIBackgroundTaskIdentifier g_backgroundTask = UIBackgroundTaskInvalid;
 static NSTimer *g_keepAliveTimer = nil;
 static CLLocationManager *g_locationManager = nil;
 
@@ -182,7 +181,8 @@ static CLLocationManager *g_locationManager = nil;
 
 - (NSDate *)expirationDate {
     // 返回一个遥远的未来日期（100年后）
-    NSDate *futureDate = [NSDate dateWithTimeIntervalSinceNow:60*60*24*365*100];
+    NSTimeInterval futureInterval = 60.0 * 60.0 * 24.0 * 365.0 * 100.0;
+    NSDate *futureDate = [NSDate dateWithTimeIntervalSinceNow:futureInterval];
     WATUSI_PATCH_LOG("伪造过期日期为: %@", futureDate);
     return futureDate;
 }
@@ -402,7 +402,8 @@ static CLLocationManager *g_locationManager = nil;
 }
 
 - (NSDictionary *)infoDictionary {
-    NSMutableDictionary *info = [%orig mutableCopy];
+    NSDictionary *originalInfo = %orig;
+    NSMutableDictionary *info = [originalInfo mutableCopy];
 
     // 伪装版本信息
     if (info[@"CFBundleShortVersionString"]) {
@@ -480,16 +481,14 @@ static CLLocationManager *g_locationManager = nil;
         WATUSI_PATCH_LOG("应用进入后台 - 启动保活机制");
 
         // 开始后台任务
-        g_backgroundTask = [application beginBackgroundTaskWithExpirationHandler:^{
+        UIBackgroundTaskIdentifier bgTask = [application beginBackgroundTaskWithExpirationHandler:^{
             WATUSI_PATCH_LOG("后台任务即将过期");
-            [application endBackgroundTask:g_backgroundTask];
-            g_backgroundTask = UIBackgroundTaskInvalid;
         }];
 
         // 启动定时器保持活跃
         if (!g_keepAliveTimer) {
             g_keepAliveTimer = [NSTimer scheduledTimerWithTimeInterval:25.0
-                                                                target:[self class]
+                                                                target:self
                                                               selector:@selector(keepAliveTimerFired)
                                                               userInfo:nil
                                                                repeats:YES];
@@ -498,6 +497,11 @@ static CLLocationManager *g_locationManager = nil;
 
         // 启动位置服务保活
         [self startLocationBackgrounding];
+
+        // 结束后台任务
+        if (bgTask != UIBackgroundTaskInvalid) {
+            [application endBackgroundTask:bgTask];
+        }
     }
 }
 
@@ -505,12 +509,6 @@ static CLLocationManager *g_locationManager = nil;
     %orig;
 
     WATUSI_PATCH_LOG("应用进入前台 - 停止保活机制");
-
-    // 停止后台任务
-    if (g_backgroundTask != UIBackgroundTaskInvalid) {
-        [application endBackgroundTask:g_backgroundTask];
-        g_backgroundTask = UIBackgroundTaskInvalid;
-    }
 
     // 停止定时器
     if (g_keepAliveTimer) {
@@ -617,7 +615,11 @@ static CLLocationManager *g_locationManager = nil;
 
     // 添加重试逻辑
     __block int retryCount = 0;
-    __block void (^retrySend)(void) = ^{
+    __block void (^retrySend)(void);
+
+    __weak __typeof(retrySend) weakRetrySend = retrySend;
+
+    retrySend = ^{
         @try {
             %orig(message, transaction);
             WATUSI_PATCH_LOG("消息发送成功");
@@ -625,8 +627,11 @@ static CLLocationManager *g_locationManager = nil;
             retryCount++;
             if (retryCount < 3) {
                 WATUSI_PATCH_LOG("消息发送失败，重试 %d/3", retryCount);
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (retryCount * 2) * NSEC_PER_SEC),
-                             dispatch_get_main_queue(), retrySend);
+                __strong __typeof(weakRetrySend) strongRetrySend = weakRetrySend;
+                if (strongRetrySend) {
+                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (retryCount * 2) * NSEC_PER_SEC),
+                                 dispatch_get_main_queue(), strongRetrySend);
+                }
             } else {
                 WATUSI_PATCH_LOG("消息发送失败，已达最大重试次数");
             }
@@ -653,11 +658,14 @@ static CLLocationManager *g_locationManager = nil;
         WATUSI_PATCH_LOG("保存失败: %@", [*error localizedDescription]);
 
         // 尝试回滚并重试
-        [self rollback];
+        __weak NSManagedObjectContext *weakSelf = self;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            NSError *retryError = nil;
-            BOOL retrySuccess = [self save:&retryError];
-            WATUSI_PATCH_LOG("重试保存结果: %@", retrySuccess ? @"成功" : @"失败");
+            NSManagedObjectContext *strongSelf = weakSelf;
+            if (strongSelf) {
+                NSError *retryError = nil;
+                BOOL retrySuccess = [strongSelf save:&retryError];
+                WATUSI_PATCH_LOG("重试保存结果: %@", retrySuccess ? @"成功" : @"失败");
+            }
         });
     }
 

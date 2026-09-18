@@ -63,7 +63,8 @@
 %hook WAServerConfigManager
 
 - (NSDictionary *)serverConfig {
-    NSMutableDictionary *config = [[%orig mutableCopy] autorelease];
+    NSDictionary *originalConfig = %orig;
+    NSMutableDictionary *config = [originalConfig mutableCopy];
 
     if (!config) {
         config = [NSMutableDictionary dictionary];
@@ -85,7 +86,6 @@
     features[@"web_multidevice_enabled"] = @YES;
     features[@"qr_code_enabled"] = @YES;
     config[@"features"] = features;
-    [features release];
 
     WEB_LOGIN_LOG("服务器配置已修改，启用所有 Web 功能");
 
@@ -129,10 +129,21 @@
 
 %new
 - (void)dismissVersionWarning {
-    // 移除所有警告视图
-    for (UIView *subview in self.view.subviews) {
-        if ([subview isKindOfClass:[UIAlertController class]]) {
-            [(UIAlertController *)subview dismissViewControllerAnimated:NO completion:nil];
+    // 移除所有警告 - 安全检查
+    if (![self respondsToSelector:@selector(view)]) {
+        return;
+    }
+
+    UIView *mainView = [self performSelector:@selector(view)];
+    if (!mainView) {
+        return;
+    }
+
+    // 尝试关闭可能的警告弹窗
+    if ([self respondsToSelector:@selector(presentedViewController)]) {
+        UIViewController *presented = [self performSelector:@selector(presentedViewController)];
+        if (presented) {
+            [presented dismissViewControllerAnimated:NO completion:nil];
         }
     }
 }
@@ -161,7 +172,8 @@
 %hook WAWebLoginRequest
 
 - (NSDictionary *)loginParameters {
-    NSMutableDictionary *params = [[%orig mutableCopy] autorelease];
+    NSDictionary *originalParams = %orig;
+    NSMutableDictionary *params = [originalParams mutableCopy];
 
     if (!params) {
         params = [NSMutableDictionary dictionary];
@@ -239,7 +251,6 @@
             [fakeResponse removeObjectForKey:@"error"];
 
             %orig(fakeResponse, completion);
-            [fakeResponse release];
             return;
         }
     }
@@ -318,7 +329,6 @@
     WEB_LOGIN_LOG("Web 认证消息 - 版本伪装");
 
     %orig(authMsg);
-    [authMsg release];
 }
 
 - (void)handleConnectionError:(NSError *)error {
@@ -403,7 +413,6 @@
     WEB_LOGIN_LOG("WebSocket 连接 - 添加版本头");
 
     %orig(modifiedHeaders);
-    [modifiedHeaders release];
 }
 
 - (void)sendMessage:(id)message {
@@ -414,7 +423,6 @@
         if (msg[@"version"]) {
             msg[@"version"] = SPOOFED_VERSION;
             %orig(msg);
-            [msg release];
             return;
         }
     }

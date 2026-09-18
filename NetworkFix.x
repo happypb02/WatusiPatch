@@ -43,7 +43,7 @@
     NSString *bundleId = [self bundleIdentifier];
 
     if ([bundleId hasPrefix:@"net.whatsapp"]) {
-        NSMutableDictionary *info = [[%orig mutableCopy] autorelease];
+        NSMutableDictionary *info = [%orig mutableCopy];
 
         if (info) {
             info[@"CFBundleShortVersionString"] = SPOOFED_VERSION;
@@ -67,29 +67,21 @@
 
 - (void)sendElement:(id)element {
     @try {
-        // 检查是否是 XML 元素
-        if ([element respondsToSelector:@selector(XMLString)]) {
-            NSString *xmlString = [element XMLString];
+        // 检查是否支持 compactXMLString (旧版) 或 XMLString (新版)
+        NSString *xmlString = nil;
+        if ([element respondsToSelector:@selector(compactXMLString)]) {
+            xmlString = [element compactXMLString];
+        } else if ([element respondsToSelector:@selector(description)]) {
+            xmlString = [element description];
+        }
 
+        if (xmlString) {
             // 查找版本相关的内容
             if ([xmlString containsString:@"version"] ||
                 [xmlString containsString:@"client"] ||
                 [xmlString containsString:@"iq"]) {
 
-                // 尝试修改版本节点
-                if ([element respondsToSelector:@selector(elementForName:)]) {
-                    id versionNode = [element elementForName:@"client-version"];
-                    if (versionNode && [versionNode respondsToSelector:@selector(setStringValue:)]) {
-                        [versionNode setStringValue:SPOOFED_VERSION];
-                        NET_LOG("XMPP: 伪装版本节点 -> %@", SPOOFED_VERSION);
-                    }
-
-                    id versionAttr = [element elementForName:@"version"];
-                    if (versionAttr && [versionAttr respondsToSelector:@selector(setStringValue:)]) {
-                        [versionAttr setStringValue:SPOOFED_VERSION];
-                        NET_LOG("XMPP: 伪装版本属性 -> %@", SPOOFED_VERSION);
-                    }
-                }
+                NET_LOG("XMPP: 检测到版本相关的元素");
             }
         }
     } @catch (NSException *exception) {
@@ -118,7 +110,7 @@
 %hook WAServerConfigManager
 
 - (NSDictionary *)serverConfig {
-    NSMutableDictionary *config = [[%orig mutableCopy] autorelease];
+    NSMutableDictionary *config = [%orig mutableCopy];
 
     if (!config) {
         config = [NSMutableDictionary dictionary];
@@ -236,7 +228,6 @@
             NET_LOG("HTTP: 添加 WA-Version 头");
         }
 
-        [modifiedHeaders autorelease];
         return modifiedHeaders;
     }
 
@@ -387,9 +378,6 @@ static const NSTimeInterval HEARTBEAT_INTERVAL = 25.0;
                     }
 
                     [self sendElement:pingElement];
-
-                    [pingChild release];
-                    [pingElement release];
                 }
             }
         } @catch (NSException *exception) {
