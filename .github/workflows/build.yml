@@ -51,11 +51,21 @@ jobs:
         # 验证安装
         ls -la $THEOS
 
-    - name: 📱 Install iOS SDK
+    - name: 📱 Install iOS toolchain and SDK
       run: |
-        cd $THEOS
+        # 安装 iOS 工具链
+        curl -LO https://github.com/sbingner/llvm-project/releases/latest/download/linux-ios-arm64e-clang-toolchain.tar.lzma
+        TMP=$(mktemp -d)
+        tar -xvf linux-ios-arm64e-clang-toolchain.tar.lzma -C $TMP
+        mkdir -p $THEOS/toolchain/linux/iphone
+        mv $TMP/ios-arm64e-clang-toolchain/* $THEOS/toolchain/linux/iphone/
+        rm -rf linux-ios-arm64e-clang-toolchain.tar.lzma $TMP
+
+        # 验证工具链
+        ls -la $THEOS/toolchain/linux/iphone/bin/
 
         # 下载 iOS SDK
+        cd $THEOS
         wget -q https://github.com/theos/sdks/archive/master.zip -O sdks.zip
         unzip -q sdks.zip
         mv sdks-master/iPhoneOS*.sdk sdks/
