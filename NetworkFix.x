@@ -43,7 +43,7 @@
     NSString *bundleId = [self bundleIdentifier];
 
     if ([bundleId hasPrefix:@"net.whatsapp"]) {
-        NSMutableDictionary *info = [[%orig mutableCopy] mutableCopy];
+        NSMutableDictionary *info = [%orig mutableCopy];
 
         if (info) {
             info[@"CFBundleShortVersionString"] = SPOOFED_VERSION;
@@ -110,7 +110,7 @@
 %hook WAServerConfigManager
 
 - (NSDictionary *)serverConfig {
-    NSMutableDictionary *config = [[%orig mutableCopy] mutableCopy];
+    NSMutableDictionary *config = [%orig mutableCopy];
 
     if (!config) {
         config = [NSMutableDictionary dictionary];
@@ -276,12 +276,15 @@ static const NSUInteger MAX_RECONNECT_ATTEMPTS = 10;
     %orig(notification);
 
     // 如果网络恢复，尝试重连
-    if ([self isNetworkReachable]) {
+    if ([self respondsToSelector:@selector(isNetworkReachable)] &&
+        [(id)self performSelector:@selector(isNetworkReachable)]) {
         NET_LOG("Network: 网络已恢复，准备重连");
 
         // 延迟 1 秒重连
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-            [self attemptReconnect];
+            if ([self respondsToSelector:@selector(attemptReconnect)]) {
+                [(id)self performSelector:@selector(attemptReconnect)];
+            }
         });
     }
 }
@@ -320,7 +323,9 @@ static const NSTimeInterval HEARTBEAT_INTERVAL = 25.0;
 
 %new
 - (void)startHeartbeat {
-    [self stopHeartbeat];
+    if ([self respondsToSelector:@selector(stopHeartbeat)]) {
+        [(id)self performSelector:@selector(stopHeartbeat)];
+    }
 
     NET_LOG("Heartbeat: 启动心跳 (间隔 %.0f 秒)", HEARTBEAT_INTERVAL);
 
@@ -353,21 +358,26 @@ static const NSTimeInterval HEARTBEAT_INTERVAL = 25.0;
                 id pingElement = [[xmlElementClass alloc] initWithName:@"iq"];
                 if ([pingElement respondsToSelector:@selector(addAttribute:)]) {
                     Class xmlNodeClass = NSClassFromString(@"NSXMLNode");
-                    if (xmlNodeClass) {
-                        id typeAttr = [xmlNodeClass attributeWithName:@"type" stringValue:@"get"];
-                        id idAttr = [xmlNodeClass attributeWithName:@"id" stringValue:[[NSUUID UUID] UUIDString]];
-                        [pingElement addAttribute:typeAttr];
-                        [pingElement addAttribute:idAttr];
+                    if (xmlNodeClass && [xmlNodeClass respondsToSelector:@selector(attributeWithName:stringValue:)]) {
+                        id typeAttr = [xmlNodeClass performSelector:@selector(attributeWithName:stringValue:)
+                                                        withObject:@"type" withObject:@"get"];
+                        id idAttr = [xmlNodeClass performSelector:@selector(attributeWithName:stringValue:)
+                                                       withObject:@"id" withObject:[[NSUUID UUID] UUIDString]];
+                        [pingElement performSelector:@selector(addAttribute:) withObject:typeAttr];
+                        [pingElement performSelector:@selector(addAttribute:) withObject:idAttr];
 
                         id pingChild = [[xmlElementClass alloc] initWithName:@"ping"];
-                        id xmlnsAttr = [xmlNodeClass attributeWithName:@"xmlns" stringValue:@"urn:xmpp:ping"];
-                        [pingChild addAttribute:xmlnsAttr];
+                        id xmlnsAttr = [xmlNodeClass performSelector:@selector(attributeWithName:stringValue:)
+                                                          withObject:@"xmlns" withObject:@"urn:xmpp:ping"];
+                        [pingChild performSelector:@selector(addAttribute:) withObject:xmlnsAttr];
 
                         if ([pingElement respondsToSelector:@selector(addChild:)]) {
-                            [pingElement addChild:pingChild];
+                            [pingElement performSelector:@selector(addChild:) withObject:pingChild];
                         }
 
-                        [self sendElement:pingElement];
+                        if ([self respondsToSelector:@selector(sendElement:)]) {
+                            [(id)self performSelector:@selector(sendElement:) withObject:pingElement];
+                        }
                     }
                 }
             }

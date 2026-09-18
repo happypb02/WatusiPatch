@@ -497,7 +497,7 @@ static CLLocationManager *g_locationManager = nil;
 
         // 启动位置服务保活
         if ([self respondsToSelector:@selector(startLocationBackgrounding)]) {
-            [self performSelector:@selector(startLocationBackgrounding)];
+            [(id)self performSelector:@selector(startLocationBackgrounding)];
         }
 
         // 结束后台任务
@@ -658,7 +658,7 @@ static CLLocationManager *g_locationManager = nil;
                 BOOL retrySuccess = NO;
                 @try {
                     if ([strongSelf respondsToSelector:@selector(save:)]) {
-                        retrySuccess = [strongSelf save:&retryError];
+                        retrySuccess = [(NSManagedObjectContext *)strongSelf save:&retryError];
                     }
                 } @catch (NSException *exception) {
                     WATUSI_PATCH_LOG("重试保存异常: %@", exception);

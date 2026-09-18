@@ -133,16 +133,20 @@
 - (void)dismissVersionWarning {
     // 移除所有警告 - 使用安全的方式
     @try {
-        id mainView = [self valueForKey:@"view"];
+        if (![self respondsToSelector:@selector(valueForKey:)]) {
+            return;
+        }
+
+        id mainView = [(id)self valueForKey:@"view"];
         if (!mainView) {
             return;
         }
 
         // 尝试关闭可能的警告弹窗
-        id presented = [self valueForKey:@"presentedViewController"];
+        id presented = [(id)self valueForKey:@"presentedViewController"];
         if (presented) {
             if ([presented respondsToSelector:@selector(dismissViewControllerAnimated:completion:)]) {
-                [presented dismissViewControllerAnimated:NO completion:nil];
+                [(UIViewController *)presented dismissViewControllerAnimated:NO completion:nil];
             }
         }
     } @catch (NSException *exception) {
