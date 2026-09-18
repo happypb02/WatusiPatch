@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>网络持久化设置</string>
+			<key>footerText</key>
+			<string>配置网络连接保活和后台运行选项</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.watusipatch</string>
+			<key>key</key>
+			<string>networkPersistence</string>
+			<key>label</key>
+			<string>网络持久化</string>
+			<key>PostNotification</key>
+			<string>com.watusipatch.settingschanged</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.watusipatch</string>
+			<key>key</key>
+			<string>backgroundKeepAlive</string>
+			<key>label</key>
+			<string>后台保活</string>
+			<key>PostNotification</key>
+			<string>com.watusipatch.settingschanged</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.watusipatch</string>
+			<key>key</key>
+			<string>autoReconnect</string>
+			<key>label</key>
+			<string>自动重连</string>
+			<key>PostNotification</key>
+			<string>com.watusipatch.settingschanged</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.watusipatch</string>
+			<key>key</key>
+			<string>locationBackgrounding</string>
+			<key>label</key>
+			<string>位置服务保活</string>
+			<key>PostNotification</key>
+			<string>com.watusipatch.settingschanged</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>调试选项</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.watusipatch</string>
+			<key>key</key>
+			<string>debugLogging</string>
+			<key>label</key>
+			<string>调试日志</string>
+			<key>PostNotification</key>
+			<string>com.watusipatch.settingschanged</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>关于</string>
+			<key>footerText</key>
+			<string>Watusi Network Optimization v2.0.0
+最彻底的网络优化和反检测方案
+
+功能特性：
+• 完全绕过越狱检测
+• 禁用版本更新检查
+• 网络连接持久化
+• 智能后台保活
+• 自动网络重连
+• 消息发送优化
+• 低内存优化</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>重启 WhatsApp</string>
+			<key>action</key>
+			<string>respring</string>
+		</dict>
+	</array>
+	<key>title</key>
+	<string>Watusi Patch</string>
+</dict>
+</plist>

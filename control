@@ -1,0 +1,26 @@
+Package: com.happypb02.watusipatch
+Name: WatusiPatch
+Version: 2.0.0
+Architecture: iphoneos-arm
+Description: Complete anti-detection and network optimization patch for WhatsApp
+ 综合性 WhatsApp 增强补丁，包含以下功能：
+ .
+ ✅ 反越狱检测 - 完全绕过 WhatsApp 越狱检测
+ ✅ 屏蔽版本过期 - 允许使用旧版本，无"版本已过期"提示
+ ✅ 修复联网问题 - 旧版本也能正常连接服务器
+ ✅ 修复扫码登录 - 旧版本支持二维码登录 WhatsApp Web
+ ✅ 网络持久化 - 后台保持 XMPP 连接不断开
+ ✅ 后台保活 - 实时接收消息，无延迟
+ ✅ 智能重连 - 网络切换自动重连
+ ✅ 消息重试 - 发送失败自动重试
+ .
+ 支持 WhatsApp 2.20.x - 2.24.x
+ 支持 WhatsApp Business
+ 兼容 iOS 13.0 - iOS 17.x
+Homepage: https://github.com/happypb02/WatusiPatch
+Maintainer: happypb02 <predty@qq.com>
+Author: happypb02 <predty@qq.com>
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000), firmware (>= 13.0)
+Conflicts:
+Icon: file:///Library/PreferenceBundles/WatusiPatchPrefs.bundle/icon@2x.png
