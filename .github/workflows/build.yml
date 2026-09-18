@@ -37,8 +37,12 @@ jobs:
           libtool \
           autoconf \
           automake \
-          libtinfo5 \
-          libncurses5
+          libncurses6 \
+          libtinfo6
+
+        # 创建 libtinfo5 符号链接（Ubuntu 24.04 兼容性）
+        sudo ln -sf /lib/x86_64-linux-gnu/libtinfo.so.6 /lib/x86_64-linux-gnu/libtinfo.so.5
+        sudo ln -sf /lib/x86_64-linux-gnu/libncurses.so.6 /lib/x86_64-linux-gnu/libncurses.so.5
 
     - name: 📦 Setup Theos
       run: |
