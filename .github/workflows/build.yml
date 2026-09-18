@@ -56,9 +56,10 @@ jobs:
     - name: 📱 Install iOS toolchain and SDK
       run: |
         # 安装 iOS 工具链
-        curl -LO https://github.com/sbingner/llvm-project/releases/latest/download/linux-ios-arm64e-clang-toolchain.tar.lzma
+        wget -q https://github.com/sbingner/llvm-project/releases/download/v10.0.0-1/linux-ios-arm64e-clang-toolchain.tar.lzma
+        sudo apt-get install -y lzma
         TMP=$(mktemp -d)
-        tar -xvf linux-ios-arm64e-clang-toolchain.tar.lzma -C $TMP
+        tar --lzma -xvf linux-ios-arm64e-clang-toolchain.tar.lzma -C $TMP
         mkdir -p $THEOS/toolchain/linux/iphone
         mv $TMP/ios-arm64e-clang-toolchain/* $THEOS/toolchain/linux/iphone/
         rm -rf linux-ios-arm64e-clang-toolchain.tar.lzma $TMP
@@ -66,11 +67,13 @@ jobs:
         # 验证工具链
         ls -la $THEOS/toolchain/linux/iphone/bin/
 
-        # 下载兼容的 iOS 14.5 SDK（与 clang 10 兼容）
-        cd $THEOS
-        curl -LO https://github.com/theos/sdks/releases/download/master/iPhoneOS14.5.sdk.tar.xz
-        tar -xf iPhoneOS14.5.sdk.tar.xz -C sdks/
-        rm iPhoneOS14.5.sdk.tar.xz
+        # 下载兼容的 iOS 14.5 SDK
+        cd $THEOS/sdks
+        wget -q https://github.com/theos/sdks/archive/master.zip
+        unzip -q master.zip
+        mv sdks-master/iPhoneOS14.5.sdk ./ 2>/dev/null || true
+        mv sdks-master/*.sdk ./ 2>/dev/null || true
+        rm -rf sdks-master master.zip
 
         # 验证 SDK
         ls -la $THEOS/sdks/
