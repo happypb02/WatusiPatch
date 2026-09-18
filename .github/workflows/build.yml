@@ -36,7 +36,9 @@ jobs:
           libssl-dev \
           libtool \
           autoconf \
-          automake
+          automake \
+          libtinfo5 \
+          libncurses5
 
     - name: 📦 Setup Theos
       run: |
