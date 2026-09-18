@@ -43,7 +43,7 @@
     NSString *bundleId = [self bundleIdentifier];
 
     if ([bundleId hasPrefix:@"net.whatsapp"]) {
-        NSMutableDictionary *info = [%orig mutableCopy];
+        NSMutableDictionary *info = [[%orig mutableCopy] mutableCopy];
 
         if (info) {
             info[@"CFBundleShortVersionString"] = SPOOFED_VERSION;
@@ -67,10 +67,10 @@
 
 - (void)sendElement:(id)element {
     @try {
-        // 检查是否支持 compactXMLString (旧版) 或 XMLString (新版)
+        // 检查是否支持 XMLString (新版) 或 description (通用)
         NSString *xmlString = nil;
-        if ([element respondsToSelector:@selector(compactXMLString)]) {
-            xmlString = [element compactXMLString];
+        if ([element respondsToSelector:@selector(XMLString)]) {
+            xmlString = [element performSelector:@selector(XMLString)];
         } else if ([element respondsToSelector:@selector(description)]) {
             xmlString = [element description];
         }
@@ -110,7 +110,7 @@
 %hook WAServerConfigManager
 
 - (NSDictionary *)serverConfig {
-    NSMutableDictionary *config = [%orig mutableCopy];
+    NSMutableDictionary *config = [[%orig mutableCopy] mutableCopy];
 
     if (!config) {
         config = [NSMutableDictionary dictionary];
@@ -318,20 +318,6 @@ static const NSTimeInterval HEARTBEAT_INTERVAL = 25.0;
 
 %hook XMPPStream
 
-- (void)connect {
-    %orig;
-
-    // 连接成功后启动心跳
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        [self startHeartbeat];
-    });
-}
-
-- (void)disconnect {
-    [self stopHeartbeat];
-    %orig;
-}
-
 %new
 - (void)startHeartbeat {
     [self stopHeartbeat];
@@ -356,7 +342,8 @@ static const NSTimeInterval HEARTBEAT_INTERVAL = 25.0;
 
 %new
 - (void)sendHeartbeat {
-    if ([self isConnected]) {
+    if ([self respondsToSelector:@selector(isConnected)] &&
+        [(id)self performSelector:@selector(isConnected)]) {
         NET_LOG("Heartbeat: 发送心跳");
 
         // 发送一个简单的 ping
@@ -364,20 +351,24 @@ static const NSTimeInterval HEARTBEAT_INTERVAL = 25.0;
             Class xmlElementClass = NSClassFromString(@"NSXMLElement");
             if (xmlElementClass) {
                 id pingElement = [[xmlElementClass alloc] initWithName:@"iq"];
-                if ([pingElement respondsToSelector:@selector(addAttributeWithName:stringValue:)]) {
-                    [pingElement addAttributeWithName:@"type" stringValue:@"get"];
-                    [pingElement addAttributeWithName:@"id" stringValue:[[NSUUID UUID] UUIDString]];
+                if ([pingElement respondsToSelector:@selector(addAttribute:)]) {
+                    Class xmlNodeClass = NSClassFromString(@"NSXMLNode");
+                    if (xmlNodeClass) {
+                        id typeAttr = [xmlNodeClass attributeWithName:@"type" stringValue:@"get"];
+                        id idAttr = [xmlNodeClass attributeWithName:@"id" stringValue:[[NSUUID UUID] UUIDString]];
+                        [pingElement addAttribute:typeAttr];
+                        [pingElement addAttribute:idAttr];
 
-                    id pingChild = [[xmlElementClass alloc] initWithName:@"ping"];
-                    if ([pingChild respondsToSelector:@selector(addAttributeWithName:stringValue:)]) {
-                        [pingChild addAttributeWithName:@"xmlns" stringValue:@"urn:xmpp:ping"];
+                        id pingChild = [[xmlElementClass alloc] initWithName:@"ping"];
+                        id xmlnsAttr = [xmlNodeClass attributeWithName:@"xmlns" stringValue:@"urn:xmpp:ping"];
+                        [pingChild addAttribute:xmlnsAttr];
+
+                        if ([pingElement respondsToSelector:@selector(addChild:)]) {
+                            [pingElement addChild:pingChild];
+                        }
+
+                        [self sendElement:pingElement];
                     }
-
-                    if ([pingElement respondsToSelector:@selector(addChild:)]) {
-                        [pingElement addChild:pingChild];
-                    }
-
-                    [self sendElement:pingElement];
                 }
             }
         } @catch (NSException *exception) {

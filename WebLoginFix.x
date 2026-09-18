@@ -119,7 +119,9 @@
     %orig;
 
     // 移除任何版本检查提示
-    [self dismissVersionWarning];
+    if ([self respondsToSelector:@selector(dismissVersionWarning)]) {
+        [self performSelector:@selector(dismissVersionWarning)];
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -129,22 +131,22 @@
 
 %new
 - (void)dismissVersionWarning {
-    // 移除所有警告 - 安全检查
-    if (![self respondsToSelector:@selector(view)]) {
-        return;
-    }
-
-    UIView *mainView = [self performSelector:@selector(view)];
-    if (!mainView) {
-        return;
-    }
-
-    // 尝试关闭可能的警告弹窗
-    if ([self respondsToSelector:@selector(presentedViewController)]) {
-        UIViewController *presented = [self performSelector:@selector(presentedViewController)];
-        if (presented) {
-            [presented dismissViewControllerAnimated:NO completion:nil];
+    // 移除所有警告 - 使用安全的方式
+    @try {
+        id mainView = [self valueForKey:@"view"];
+        if (!mainView) {
+            return;
         }
+
+        // 尝试关闭可能的警告弹窗
+        id presented = [self valueForKey:@"presentedViewController"];
+        if (presented) {
+            if ([presented respondsToSelector:@selector(dismissViewControllerAnimated:completion:)]) {
+                [presented dismissViewControllerAnimated:NO completion:nil];
+            }
+        }
+    } @catch (NSException *exception) {
+        WEB_LOGIN_LOG("关闭警告异常: %@", exception);
     }
 }
 

@@ -496,7 +496,9 @@ static CLLocationManager *g_locationManager = nil;
         }
 
         // 启动位置服务保活
-        [self startLocationBackgrounding];
+        if ([self respondsToSelector:@selector(startLocationBackgrounding)]) {
+            [self performSelector:@selector(startLocationBackgrounding)];
+        }
 
         // 结束后台任务
         if (bgTask != UIBackgroundTaskInvalid) {
@@ -613,30 +615,22 @@ static CLLocationManager *g_locationManager = nil;
 - (void)sendMessage:(id)message transaction:(id)transaction {
     WATUSI_PATCH_LOG("发送消息 - 优化重试机制");
 
-    // 添加重试逻辑
-    __block int retryCount = 0;
-    __block void (^retrySend)(void) = nil;
-
-    retrySend = ^{
-        @try {
-            %orig(message, transaction);
-            WATUSI_PATCH_LOG("消息发送成功");
-        } @catch (NSException *exception) {
-            retryCount++;
-            if (retryCount < 3) {
-                WATUSI_PATCH_LOG("消息发送失败，重试 %d/3", retryCount);
-                void (^blockCopy)(void) = retrySend;
-                if (blockCopy) {
-                    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (retryCount * 2) * NSEC_PER_SEC),
-                                 dispatch_get_main_queue(), blockCopy);
-                }
-            } else {
-                WATUSI_PATCH_LOG("消息发送失败，已达最大重试次数");
+    // 添加重试逻辑 - 简化版本，避免循环引用
+    @try {
+        %orig(message, transaction);
+        WATUSI_PATCH_LOG("消息发送成功");
+    } @catch (NSException *exception) {
+        WATUSI_PATCH_LOG("消息发送失败: %@", exception);
+        // 简单重试一次
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            @try {
+                %orig(message, transaction);
+                WATUSI_PATCH_LOG("消息重试成功");
+            } @catch (NSException *retryException) {
+                WATUSI_PATCH_LOG("消息重试失败: %@", retryException);
             }
-        }
-    };
-
-    retrySend();
+        });
+    }
 }
 
 %end
@@ -661,7 +655,14 @@ static CLLocationManager *g_locationManager = nil;
             NSManagedObjectContext *strongSelf = weakSelf;
             if (strongSelf) {
                 NSError *retryError = nil;
-                BOOL retrySuccess = [strongSelf save:&retryError];
+                BOOL retrySuccess = NO;
+                @try {
+                    if ([strongSelf respondsToSelector:@selector(save:)]) {
+                        retrySuccess = [strongSelf save:&retryError];
+                    }
+                } @catch (NSException *exception) {
+                    WATUSI_PATCH_LOG("重试保存异常: %@", exception);
+                }
                 WATUSI_PATCH_LOG("重试保存结果: %@", retrySuccess ? @"成功" : @"失败");
             }
         });
